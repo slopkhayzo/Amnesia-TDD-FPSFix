@@ -1,5 +1,15 @@
 # AmnesiaTDD.FPSFix
 
+> [!WARNING]
+> This patch has been pretty much entirely been generated using AI; 
+> I won't and will never claim to have enough knowledge or expertise to do this 
+> kind of reverse-engineering by myself; I've tested about 90% of the game (reached the broken orb level) at 360hz + 
+> briefly tested at 120, 144 and 240 and so far spotted 
+> no major issues (on my machine ofc, if you have issues feel free to open an Issue)
+> this patch currently probably only works for the latest GOG version of the game, I do have 
+> the Steam version too but still have to test that, so no guarantees for now.
+> If you're interested and want more (human generated) info, I have a blog post [here](https://slop-blog.enkhayzomachines.net/posts/amnesia-the-dark-descent-high-fps-ril) :)
+
 A high-frame-rate fix for the Windows version of *Amnesia: The Dark Descent*.
 It lets the game render above 60 FPS while keeping physics, scripts, AI, saves,
 and other gameplay systems on the engine's original 60 Hz update loop.
