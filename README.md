@@ -6,8 +6,6 @@
 > kind of reverse-engineering by myself; I've tested about 90% of the game (reached the broken orb level) at 360hz + 
 > briefly tested at 120, 144 and 240 and so far spotted 
 > no major issues (on my machine ofc, if you have issues feel free to open an Issue)
-> this patch currently probably only works for the latest GOG version of the game, I do have 
-> the Steam version too but still have to test that, so no guarantees for now.
 > If you're interested and want more (human generated) info, I have a blog post [here](https://slop-blog.enkhayzomachines.net/posts/amnesia-the-dark-descent-high-fps-ril) :)
 
 A high-frame-rate fix for the Windows version of *Amnesia: The Dark Descent*.
@@ -38,6 +36,15 @@ The validated release target is the GOG Windows build:
 | --- | --- |
 | GOG build ID | `53742270235201755` |
 | `Amnesia.exe` SHA-256 | `E75EE41394B2D20B0F96B74713C40F6C38BAC88E98D0E23383036F22EA1688D0` |
+
+Since 1.0.1, the current (2023) Steam build is supported as well. Its engine
+code is identical to the GOG build; its game code was recompiled with the same
+data layout, so the affected functions carry a second signature:
+
+| | Value |
+| --- | --- |
+| Steam `Amnesia.exe` SHA-256 | `FB5E25DD463983D50C3986A17856F7A6DB63F14D73D9AAF754E0B94A894521EE` |
+| Steam `Amnesia_NoSteam.exe` SHA-256 | `FD90F172BCCD1F3BAF672694952351B8C30EC308618BDFB3F902D9415E5C1011` |
 
 Other storefronts and revisions may work. On startup, the plugin verifies all
 required engine signatures and imports instead of relying on the executable's
@@ -73,7 +80,7 @@ The plugin is loader-agnostic and always looks for its INI beside the ASI.
 The supplied configuration enables all validated fixes and is suitable for
 normal play. Keep VSync enabled or set an external frame-rate cap: the render
 unlock can otherwise run as fast as the machine allows, and the internal
-`PresentationLimiter`/`TargetFPS` option is not implemented in 1.0.0.
+`PresentationLimiter`/`TargetFPS` option is not implemented in 1.0.1.
 
 Settings are documented in
 [`config/AmnesiaTDD.FPSFix.ini`](config/AmnesiaTDD.FPSFix.ini). Most users

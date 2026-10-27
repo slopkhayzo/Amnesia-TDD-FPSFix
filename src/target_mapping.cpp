@@ -13,10 +13,16 @@
 namespace atdd::target {
 namespace {
 
+// The 2023 rebuild (Steam Amnesia.exe/Amnesia_NoSteam.exe) shares the HPL2
+// engine code and every mapped field offset with the GOG build, but its game
+// code was compiled differently. Functions affected by that carry a second
+// signature; across both variants exactly one match must exist.
 struct Pattern {
     std::span<const std::uint8_t> bytes;
     std::string_view mask;
     const wchar_t* name;
+    std::span<const std::uint8_t> build2023Bytes = {};
+    std::string_view build2023Mask = {};
 };
 
 constexpr std::array<std::uint8_t, 64> kEngineRunBytes = {
@@ -77,15 +83,32 @@ constexpr std::array<std::uint8_t, 32> kLuxPlayerAddYawBytes = {
     0x45, 0x08, 0x51, 0x8B, 0x8E, 0x78, 0x02, 0x00,
     0x00, 0xDC, 0xC0, 0xD9, 0x5D, 0x08, 0xD9, 0x45,
 };
+constexpr std::array<std::uint8_t, 32> kLuxPlayerAddYawBuild2023Bytes = {
+    0x55, 0x8B, 0xEC, 0x56, 0x8B, 0xF1, 0x80, 0xBE,
+    0xB4, 0x02, 0x00, 0x00, 0x00, 0x74, 0x2B, 0xD9,
+    0x45, 0x08, 0x51, 0x8B, 0x8E, 0x78, 0x02, 0x00,
+    0x00, 0xDC, 0xC0, 0xD9, 0x5D, 0x08, 0xD9, 0x45,
+};
 constexpr std::array<std::uint8_t, 32> kLuxPlayerAddPitchBytes = {
     0x55, 0x8B, 0xEC, 0x56, 0x8B, 0xF1, 0x80, 0xBE,
     0xB4, 0x02, 0x00, 0x00, 0x00, 0x74, 0x0D, 0xD9,
     0x45, 0x08, 0xDC, 0xC0, 0xD9, 0x5D, 0x08, 0xD9,
     0x45, 0x08, 0xEB, 0x52, 0xD9, 0x86, 0xC4, 0x00,
 };
+constexpr std::array<std::uint8_t, 32> kLuxPlayerAddPitchBuild2023Bytes = {
+    0x55, 0x8B, 0xEC, 0x56, 0x8B, 0xF1, 0x80, 0xBE,
+    0xB4, 0x02, 0x00, 0x00, 0x00, 0x74, 0x0D, 0xD9,
+    0x45, 0x08, 0xDC, 0xC0, 0xD9, 0x5D, 0x08, 0xD9,
+    0x45, 0x08, 0xEB, 0x56, 0xD9, 0x86, 0xC4, 0x00,
+};
 constexpr std::array<std::uint8_t, 19> kPlayerHandsPostUpdateBytes = {
     0x55, 0x8B, 0xEC, 0xD9, 0x45, 0x08, 0x51, 0xD9,
     0x1C, 0x24, 0xE8, 0xBA, 0xFC, 0xFF, 0xFF, 0x5D,
+    0xC2, 0x04, 0x00,
+};
+constexpr std::array<std::uint8_t, 19> kPlayerHandsPostUpdateBuild2023Bytes = {
+    0x55, 0x8B, 0xEC, 0xD9, 0x45, 0x08, 0x51, 0xD9,
+    0x1C, 0x24, 0xE8, 0x51, 0xFC, 0xFF, 0xFF, 0x5D,
     0xC2, 0x04, 0x00,
 };
 constexpr std::array<std::uint8_t, 32> kLuxPropOnUpdateBytes = {
@@ -94,14 +117,30 @@ constexpr std::array<std::uint8_t, 32> kLuxPropOnUpdateBytes = {
     0xED, 0xFF, 0xFF, 0xD9, 0x45, 0x08, 0x51, 0x8B,
     0xCE, 0xD9, 0x1C, 0x24, 0xE8, 0x15, 0xFD, 0xFF,
 };
+constexpr std::array<std::uint8_t, 32> kLuxPropOnUpdateBuild2023Bytes = {
+    0x55, 0x8B, 0xEC, 0x51, 0xD9, 0x45, 0x08, 0x56,
+    0x57, 0x51, 0xD9, 0x1C, 0x24, 0x8B, 0xF1, 0xE8,
+    0x00, 0x00, 0x00, 0x00, 0xD9, 0x45, 0x08, 0x51,
+    0x8B, 0xCE, 0xD9, 0x1C, 0x24, 0xE8, 0x00, 0x00,
+};
 constexpr std::array<std::uint8_t, 32> kLuxEnemyOnUpdateBytes = {
     0x55, 0x8B, 0xEC, 0x51, 0x51, 0x56, 0x8B, 0xF1,
     0x80, 0xBE, 0x0C, 0x01, 0x00, 0x00, 0x00, 0x0F,
     0x85, 0x30, 0x01, 0x00, 0x00, 0xA1, 0x74, 0xA8,
     0xAF, 0x00, 0xD9, 0x45, 0x08, 0x8B, 0x08, 0xDD,
 };
+constexpr std::array<std::uint8_t, 32> kLuxEnemyOnUpdateBuild2023Bytes = {
+    0x55, 0x8B, 0xEC, 0x83, 0xEC, 0x08, 0x56, 0x8B,
+    0xF1, 0x80, 0xBE, 0x0C, 0x01, 0x00, 0x00, 0x00,
+    0x0F, 0x85, 0x00, 0x00, 0x00, 0x00, 0xA1, 0x00,
+    0x00, 0x00, 0x00, 0xD9, 0x45, 0x08, 0x8B, 0x08,
+};
 constexpr std::array<std::uint8_t, 13> kEntityGetWorldMatrixBytes = {
     0x56, 0x8B, 0xF1, 0xE8, 0x78, 0x00, 0x00, 0x00,
+    0x8D, 0x46, 0x6C, 0x5E, 0xC3,
+};
+constexpr std::array<std::uint8_t, 13> kEntityGetWorldMatrixBuild2023Bytes = {
+    0x56, 0x8B, 0xF1, 0xE8, 0x68, 0x00, 0x00, 0x00,
     0x8D, 0x46, 0x6C, 0x5E, 0xC3,
 };
 constexpr std::array<std::uint8_t, 7> kEntityGetEntityParentBytes = {
@@ -164,14 +203,41 @@ constexpr std::array<std::uint8_t, 32> kLuxUpdateGamePlayerInputBytes = {
     0xE8, 0x8E, 0x34, 0xFB, 0xFF, 0x84, 0xC0, 0x74,
     0x5D, 0x8B, 0x4E, 0x34, 0x6A, 0x28, 0xE8, 0xD6,
 };
+constexpr std::array<std::uint8_t, 32> kLuxUpdateGamePlayerInputBuild2023Bytes = {
+    0x55, 0x8B, 0xEC, 0xD9, 0xEE, 0x83, 0xEC, 0x40,
+    0x56, 0x8B, 0xF1, 0x8B, 0x4E, 0x38, 0xD8, 0x99,
+    0x84, 0x00, 0x00, 0x00, 0xDF, 0xE0, 0xF6, 0xC4,
+    0x01, 0x75, 0x5D, 0x8B, 0x4E, 0x34, 0x6A, 0x28,
+};
 
-bool Matches(const std::uint8_t* candidate, const Pattern& pattern) {
-    for (std::size_t index = 0; index < pattern.bytes.size(); ++index) {
-        if (pattern.mask[index] == 'x' && candidate[index] != pattern.bytes[index]) {
+bool Matches(const std::uint8_t* candidate,
+             const std::span<const std::uint8_t> bytes,
+             const std::string_view mask) {
+    for (std::size_t index = 0; index < bytes.size(); ++index) {
+        if (mask[index] == 'x' && candidate[index] != bytes[index]) {
             return false;
         }
     }
     return true;
+}
+
+// Counts up to two matches so ambiguity is detected without a full rescan.
+void CountMatches(const std::uint8_t* textStart,
+                  const std::size_t textSize,
+                  const std::span<const std::uint8_t> bytes,
+                  const std::string_view mask,
+                  std::size_t& matches,
+                  const std::uint8_t*& match) {
+    if (bytes.empty() || textSize < bytes.size()) {
+        return;
+    }
+    for (std::size_t offset = 0; offset <= textSize - bytes.size() && matches <= 1;
+         ++offset) {
+        if (Matches(textStart + offset, bytes, mask)) {
+            ++matches;
+            match = textStart + offset;
+        }
+    }
 }
 
 bool ValidatePattern(const std::uint8_t* imageBase,
@@ -179,7 +245,8 @@ bool ValidatePattern(const std::uint8_t* imageBase,
                      const Pattern& pattern,
                      void*& result,
                      std::wstring& error) {
-    if (pattern.mask.size() != pattern.bytes.size()) {
+    if (pattern.mask.size() != pattern.bytes.size() ||
+        pattern.build2023Mask.size() != pattern.build2023Bytes.size()) {
         error = std::wstring(pattern.name) + L": internal signature length mismatch";
         return false;
     }
@@ -192,15 +259,9 @@ bool ValidatePattern(const std::uint8_t* imageBase,
 
     std::size_t matches = 0;
     const std::uint8_t* match = nullptr;
-    for (std::size_t offset = 0; offset <= textSize - pattern.bytes.size(); ++offset) {
-        if (Matches(textStart + offset, pattern)) {
-            ++matches;
-            match = textStart + offset;
-            if (matches > 1) {
-                break;
-            }
-        }
-    }
+    CountMatches(textStart, textSize, pattern.bytes, pattern.mask, matches, match);
+    CountMatches(textStart, textSize, pattern.build2023Bytes, pattern.build2023Mask,
+                 matches, match);
 
     if (matches != 1) {
         error = std::wstring(pattern.name) + L": expected one signature match, found " +
@@ -362,7 +423,7 @@ bool ResolveAndValidate(const HMODULE executable, Mapping& mapping, std::wstring
 
     const Pattern enginePattern{
         kEngineRunBytes,
-        "xxxxxx????xxxxxxxxxxx????xxxxxxxxxxxxxxxxxxx????xxxxxxxxxxxxxxxx",
+        "xxxxxx????xxxxxxxxxxx????xxxxxxxxxxxxxxxxxxx????xxx????xxxxxxxxx",
         L"cEngine::Run"};
     const Pattern updaterPattern{
         kUpdaterRunMessageBytes, "xxxxxxxxxxxxxxxxxxxxxxxx",
@@ -390,22 +451,28 @@ bool ResolveAndValidate(const HMODULE executable, Mapping& mapping, std::wstring
         L"cCamera::AddYaw"};
     const Pattern luxPlayerAddYawPattern{
         kLuxPlayerAddYawBytes, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        L"cLuxPlayer::AddYaw"};
+        L"cLuxPlayer::AddYaw",
+        kLuxPlayerAddYawBuild2023Bytes, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"};
     const Pattern luxPlayerAddPitchPattern{
         kLuxPlayerAddPitchBytes, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        L"cLuxPlayer::AddPitch"};
+        L"cLuxPlayer::AddPitch",
+        kLuxPlayerAddPitchBuild2023Bytes, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"};
     const Pattern playerHandsPostUpdatePattern{
         kPlayerHandsPostUpdateBytes, "xxxxxxxxxxxxxxxxxxx",
-        L"cLuxPlayerHands::PostUpdate"};
+        L"cLuxPlayerHands::PostUpdate",
+        kPlayerHandsPostUpdateBuild2023Bytes, "xxxxxxxxxxxxxxxxxxx"};
     const Pattern luxPropOnUpdatePattern{
         kLuxPropOnUpdateBytes, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        L"iLuxProp::OnUpdate"};
+        L"iLuxProp::OnUpdate",
+        kLuxPropOnUpdateBuild2023Bytes, "xxxxxxxxxxxxxxxx????xxxxxxxxxx??"};
     const Pattern luxEnemyOnUpdatePattern{
         kLuxEnemyOnUpdateBytes, "xxxxxxxxxxxxxxxxxxxxxx????xxxxxx",
-        L"iLuxEnemy::OnUpdate"};
+        L"iLuxEnemy::OnUpdate",
+        kLuxEnemyOnUpdateBuild2023Bytes, "xxxxxxxxxxxxxxxxxx????x????xxxxx"};
     const Pattern entityGetWorldMatrixPattern{
         kEntityGetWorldMatrixBytes, "xxxxxxxxxxxxx",
-        L"iEntity3D::GetWorldMatrix"};
+        L"iEntity3D::GetWorldMatrix",
+        kEntityGetWorldMatrixBuild2023Bytes, "xxxxxxxxxxxxx"};
     const Pattern entityGetEntityParentPattern{
         kEntityGetEntityParentBytes, "xxxxxxx",
         L"iEntity3D::GetEntityParent"};
@@ -413,7 +480,7 @@ bool ResolveAndValidate(const HMODULE executable, Mapping& mapping, std::wstring
         kPhysicsBodyGetEnabledBytes, "xxxxxxxxx????xxxxxxxxx",
         L"cPhysicsBodyNewton::GetEnabled"};
     const Pattern newtonTransformCallbackPattern{
-        kNewtonTransformCallbackBytes, "xxxxxxxxxx????xxxxxxxxxxxxxxxxxx",
+        kNewtonTransformCallbackBytes, "xxxxxxxxxx????xxxxxxxxxxxxx????x",
         L"cPhysicsBodyNewton transform callback"};
     const Pattern meshEntityUpdateGraphicsPattern{
         kMeshEntityUpdateGraphicsBytes, "xxxxxxxxxxxxxxxxxxxxxxxx",
@@ -425,10 +492,10 @@ bool ResolveAndValidate(const HMODULE executable, Mapping& mapping, std::wstring
         kImageTrailRenderEffectBytes, "xxxxxxxxxxxxxxxxxxxxx????xxxxxxx",
         L"cPostEffect_ImageTrail::RenderEffect"};
     const Pattern subMeshGetModelMatrixPattern{
-        kSubMeshGetModelMatrixBytes, "xxxxxxxxxxxxxxxxxxxxxxxxx????xxx",
+        kSubMeshGetModelMatrixBytes, "xxxxxxxxxxxxxxxxxxxxxxxxx????x??",
         L"cSubMeshEntity::GetModelMatrix"};
     const Pattern mouseSdlUpdatePattern{
-        kMouseSdlUpdateBytes, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
+        kMouseSdlUpdateBytes, "xxxxxxxxxxxxxxxxxxxxxx????xxxxxx",
         L"cMouseSDL::Update"};
     const Pattern mouseSdlGetRelPositionPattern{
         kMouseSdlGetRelPositionBytes, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
@@ -438,7 +505,8 @@ bool ResolveAndValidate(const HMODULE executable, Mapping& mapping, std::wstring
         L"cGui::SendMousePos"};
     const Pattern luxUpdateGamePlayerInputPattern{
         kLuxUpdateGamePlayerInputBytes, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx",
-        L"cLuxInputHandler::UpdateGamePlayerInput"};
+        L"cLuxInputHandler::UpdateGamePlayerInput",
+        kLuxUpdateGamePlayerInputBuild2023Bytes, "xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx"};
 
     return ValidatePattern(imageBase, *text, enginePattern,
                            mapping.engineRun, error) &&

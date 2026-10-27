@@ -2,7 +2,7 @@ cmake_minimum_required(VERSION 3.24)
 
 project(
     AmnesiaTddFpsFix
-    VERSION 1.0.0
+    VERSION 1.0.1
     DESCRIPTION "High-frame-rate presentation fix for Amnesia: The Dark Descent"
     LANGUAGES C CXX
 )

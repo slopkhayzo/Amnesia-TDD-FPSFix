@@ -2857,6 +2857,17 @@ std::wstring HookError(const wchar_t* operation, const MH_STATUS status) {
     return std::wstring(operation) + L" failed: " + wideStatus;
 }
 
+std::wstring RvaText(const HMODULE executable, const void* address) {
+    constexpr wchar_t kDigits[] = L"0123456789ABCDEF";
+    const auto rva = static_cast<std::uint32_t>(reinterpret_cast<std::uintptr_t>(address) -
+                                                reinterpret_cast<std::uintptr_t>(executable));
+    std::wstring text = L"0x00000000";
+    for (std::size_t digit = 0; digit < 8; ++digit) {
+        text[9 - digit] = kDigits[(rva >> (4 * digit)) & 0xFU];
+    }
+    return text;
+}
+
 void RollBackHooks(const target::Mapping& mapping) {
     MH_DisableHook(MH_ALL_HOOKS);
     if (mapping.engineRun != nullptr) {
@@ -3247,28 +3258,44 @@ bool Initialize(const HMODULE executable, const bool telemetryEnabled,
         return false;
     }
 
+    const auto rva = [executable](const void* address) {
+        return RvaText(executable, address);
+    };
     log::Write(log::Level::info,
-               L"Validated engine mappings: cEngine::Run RVA 0x000E1420, "
-               L"cUpdater::RunMessage RVA 0x000E4070, cScene::Render RVA 0x0012B690, "
-               L"cCamera setters RVA 0x0011CC20/0x0011C690/0x0011C700/0x0011C770, "
-               L"cCamera AddPitch/AddYaw RVA 0x0011C790/0x0011C810, "
-               L"cLuxPlayer::AddYaw/AddPitch RVA 0x000B1262/0x000B131D, "
-               L"cLuxPlayerHands::PostUpdate RVA 0x000B4E4F, "
-               L"iLuxProp::OnUpdate RVA 0x00035881, "
-               L"iLuxEnemy::OnUpdate RVA 0x00028FE6, "
-               L"iEntity3D::GetWorldMatrix RVA 0x0011F300, "
-               L"iEntity3D::GetEntityParent RVA 0x0011F370, "
-               L"cPhysicsBodyNewton::GetEnabled RVA 0x001E78E0, "
-               L"cPhysicsBodyNewton transform callback RVA 0x001E81D0, "
-               L"cMeshEntity::UpdateGraphicsForFrame RVA 0x00101020, "
-               L"iParticleEmitter::UpdateGraphicsForViewport RVA 0x00166A80, "
-               L"cPostEffect_ImageTrail::RenderEffect RVA 0x001A9DF0, "
-               L"cSubMeshEntity::GetModelMatrix RVA 0x00195CF0, "
-               L"cMouseSDL::Update/GetRelPosition RVA 0x001D2100/0x001D20E0, "
-               L"cGui::SendMousePos RVA 0x000FB4F0, "
-               L"SDL2 relative-state/pump/ticks IAT RVA "
-               L"0x005DDA68/0x005DDA6C/0x005DDA74, "
-               L"cLuxInputHandler::UpdateGamePlayerInput RVA 0x00058BA7.");
+               L"Validated engine mappings: cEngine::Run RVA " + rva(mapping.engineRun) +
+                   L", cUpdater::RunMessage RVA " + rva(mapping.updaterRunMessage) +
+                   L", cScene::Render RVA " + rva(mapping.sceneRender) +
+                   L", cCamera setters RVA " + rva(mapping.cameraSetPosition) + L"/" +
+                   rva(mapping.cameraSetPitch) + L"/" + rva(mapping.cameraSetYaw) + L"/" +
+                   rva(mapping.cameraSetRoll) +
+                   L", cCamera AddPitch/AddYaw RVA " + rva(mapping.cameraAddPitch) + L"/" +
+                   rva(mapping.cameraAddYaw) +
+                   L", cLuxPlayer::AddYaw/AddPitch RVA " + rva(mapping.luxPlayerAddYaw) +
+                   L"/" + rva(mapping.luxPlayerAddPitch) +
+                   L", cLuxPlayerHands::PostUpdate RVA " +
+                   rva(mapping.playerHandsPostUpdate) +
+                   L", iLuxProp::OnUpdate RVA " + rva(mapping.luxPropOnUpdate) +
+                   L", iLuxEnemy::OnUpdate RVA " + rva(mapping.luxEnemyOnUpdate) +
+                   L", iEntity3D::GetWorldMatrix RVA " + rva(mapping.entityGetWorldMatrix) +
+                   L", iEntity3D::GetEntityParent RVA " + rva(mapping.entityGetEntityParent) +
+                   L", cPhysicsBodyNewton::GetEnabled RVA " +
+                   rva(mapping.physicsBodyGetEnabled) +
+                   L", cPhysicsBodyNewton transform callback RVA " +
+                   rva(mapping.newtonTransformCallback) +
+                   L", cMeshEntity::UpdateGraphicsForFrame RVA " +
+                   rva(mapping.meshEntityUpdateGraphics) +
+                   L", iParticleEmitter::UpdateGraphicsForViewport RVA " +
+                   rva(mapping.particleEmitterUpdateGraphics) +
+                   L", cPostEffect_ImageTrail::RenderEffect RVA " +
+                   rva(mapping.imageTrailRenderEffect) +
+                   L", cSubMeshEntity::GetModelMatrix RVA " +
+                   rva(mapping.subMeshGetModelMatrix) +
+                   L", cMouseSDL::Update/GetRelPosition RVA " + rva(mapping.mouseSdlUpdate) +
+                   L"/" + rva(mapping.mouseSdlGetRelPosition) +
+                   L", cGui::SendMousePos RVA " + rva(mapping.guiSendMousePos) +
+                   L", SDL2 relative-state/pump/ticks resolved through named imports"
+                   L", cLuxInputHandler::UpdateGamePlayerInput RVA " +
+                   rva(mapping.luxUpdateGamePlayerInput) + L".");
     if (renderUnlockEnabled) {
         log::Write(log::Level::info,
                    L"Render-unlock hook enabled; awaiting cEngine::Run. Use VSync or an "

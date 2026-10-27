@@ -1,4 +1,4 @@
-AmnesiaTDD.FPSFix 1.0.0
+AmnesiaTDD.FPSFix 1.0.1
 =======================
 
 AmnesiaTDD.FPSFix decouples presentation from Amnesia: The Dark Descent's
@@ -17,15 +17,21 @@ is absent, ambiguous, malformed, or non-executable, startup fails closed before
 engine hooks are installed. This compatibility scan runs once during deferred
 plugin startup and is never repeated in simulation, input, or render paths.
 
-Validated release build:
+Validated release builds:
 
 GOG Windows build ID: 53742270235201755
 Amnesia.exe SHA-256:
 E75EE41394B2D20B0F96B74713C40F6C38BAC88E98D0E23383036F22EA1688D0
 
+Steam (2023 update), supported since 1.0.1:
+Amnesia.exe SHA-256:
+FB5E25DD463983D50C3986A17856F7A6DB63F14D73D9AAF754E0B94A894521EE
+Amnesia_NoSteam.exe SHA-256:
+FD90F172BCCD1F3BAF672694952351B8C30EC308618BDFB3F902D9415E5C1011
+
 Other storefronts and executable revisions are allowed by the compatibility
 scanner, but are unverified until tested. A successful signature scan means
-that the executable has the exact code and layout assumptions used by 1.0.0;
+that the executable has the exact code and layout assumptions used by 1.0.1;
 it is not a general promise that every revision will match.
 
 INSTALLATION
